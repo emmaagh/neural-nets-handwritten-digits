@@ -1,0 +1,25 @@
+type project
+title
+    neural-nets-handwritten-digits
+owners
+    Emma Nash
+authors 
+    Emma Nash
+projectUrl
+    https://github.com/[github-user]/neural-nets-handwritten-digits
+iconUrl
+    https://raw.githubusercontent.com/[github-user]/neural-nets-handwritten-digits/master/docs/files/img/logo.png
+licenseUrl
+    https://github.com/[github-user]/neural-nets-handwritten-digits/blob/master/LICENSE.txt
+requireLicenseAcceptance
+    false
+copyright
+    Copyright 2015
+tags
+    
+summary
+    A neural network which learns how to read handwritten digits
+description
+    Description not set
+
+
