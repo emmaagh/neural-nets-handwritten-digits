@@ -1,9 +1,3 @@
-// Once this is getting a decent answer
-//    the code can be tidied
-//      testing code moved to tests (or some kind of usage / Main file)
-//      move rnd to the stochastic fn (probably)
-//    and pushed to git
-
 module Network
 
 open System

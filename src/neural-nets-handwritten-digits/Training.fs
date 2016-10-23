@@ -17,7 +17,7 @@ let trainNetworkOnMiniBatch nu network miniBatch =
     { Biases = List.map2 add netA.Biases netB.Biases;
       Weights = List.map2 addMatrices netA.Weights netB.Weights }
   let normaliseNablaMatrix =
-    List.map (List.map (fun a -> a * nu / miniBatchSize))
+    List.map (List.map ((*) (nu / miniBatchSize)))
   let nablaNetwork =
     miniBatch
     |> List.map (backpropagate network)

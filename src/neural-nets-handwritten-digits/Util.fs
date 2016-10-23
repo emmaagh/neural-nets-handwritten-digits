@@ -15,5 +15,4 @@ let shuffle (rnd : Random) list =
 let batchesOf size = // This will include a smaller batch at the end - should this be removed? Might also want to consider optimising this code
   Seq.mapi (fun i v -> i / size, v)
   >> Seq.groupBy fst
-  >> Seq.map snd    // Seq.map (snd >> Seq.map snd) ?
-  >> Seq.map (Seq.map snd)
+  >> Seq.map (snd >> Seq.map snd) // Dear god
