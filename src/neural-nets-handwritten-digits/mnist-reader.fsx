@@ -1,12 +1,18 @@
 #load "MnistReader.fs"
 
+open System.Diagnostics
 open MnistReader
 
-getTestSet ()
-|> Seq.map snd
-|> Seq.max
-|> printfn "%A"
+let loadDataSets () =
+  let stopwatch = Stopwatch.StartNew ()
 
-getTrainingSet ()
-|> Seq.length
-|> printfn "%i"
+  getTestSet () |> ignore
+
+  printfn "%f" stopwatch.Elapsed.TotalSeconds
+
+  getTrainingSet () |> ignore
+
+  stopwatch.Stop ()
+  printfn "%f" stopwatch.Elapsed.TotalSeconds
+
+loadDataSets ()

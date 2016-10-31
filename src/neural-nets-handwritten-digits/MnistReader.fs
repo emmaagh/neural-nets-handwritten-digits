@@ -29,25 +29,31 @@ let getDigitImages imageType numberImages convertDigit =
   let numberCols = 28
   let numberPixels = numberRows * numberCols
 
-  let readInt (reader:BinaryReader) =
-    reader.ReadByte ()
-    |> Convert.ToInt32
+  let readImageBytes _ =
+    let imageBytes = List.init numberPixels (fun _ -> imagesReader.ReadByte ())
+    imageBytes, labelsReader.ReadByte ()
 
-  let getNextPixel _ : double =
-    imagesReader
-    |> readInt
-    |> fun intensity -> (double intensity) / 255.0
+  let parsePixel : byte -> _ =
+    Convert.ToInt32
+    >> fun intensity -> (double intensity) / 255.0
 
-  let getNextDigitImage () =
-    let image = List.init numberPixels getNextPixel
-    let digit = labelsReader |> readInt |> convertDigit
+  let parseImage (imageBytes : byte list, digitByte : byte) =
+    let image =
+      imageBytes
+      |> List.map parsePixel
+    let digit =
+      digitByte
+      |> Convert.ToInt32
+      |> convertDigit
     image, digit
 
-  [|1..numberImages|]
-  |> Array.map (fun _ -> getNextDigitImage ())
+  Array.init numberImages readImageBytes
+  |> Array.Parallel.map parseImage
 
 let vectorise i : double list =
   List.init 10 (fun k -> if k = i then 1.0 else 0.0)
 
-let getTrainingSet () = getDigitImages "train" 60000 vectorise
-let getTestSet () = getDigitImages "t10k" 10000 id
+let trainingSetCount = 5000 // 60000
+let testSetCount = 500 // 10000
+let getTrainingSet () = getDigitImages "train" trainingSetCount vectorise
+let getTestSet () = getDigitImages "t10k" testSetCount id

@@ -21,18 +21,16 @@ let train () =
 
   let trainingData =
     getTrainingSet ()
-    |> Seq.take 1000
     |> Array.ofSeq
 
   let testData =
     getTestSet ()
-    |> Seq.take 50
     |> List.ofSeq
     |> Some
 
   printfn "Test data loaded"
 
-  let resultNetwork = stochasticGradientDescent startNetwork trainingData 5 100 3.0 testData rnd
+  let resultNetwork = stochasticGradientDescent startNetwork trainingData 5 10 3.0 testData rnd
 
   printfn "Biases"
   resultNetwork.Biases
