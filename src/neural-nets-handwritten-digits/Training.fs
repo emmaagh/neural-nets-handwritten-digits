@@ -24,8 +24,8 @@ let trainNetworkOnMiniBatch nu network miniBatch =
     |> List.fold addNetworks emptyNetwork
     |> fun net -> { Biases = net.Biases |> normaliseNablaMatrix;
                     Weights = net.Weights |> List.map normaliseNablaMatrix }
-  { Biases = addMatrices network.Biases nablaNetwork.Biases;
-    Weights = List.map2 addMatrices network.Weights nablaNetwork.Weights }
+  { Biases = subtractMatrix network.Biases nablaNetwork.Biases;
+    Weights = List.map2 subtractMatrix network.Weights nablaNetwork.Weights }
 
 let countCorrectOutputs network data =
   data
@@ -47,6 +47,7 @@ let displayEpochResults network testData epoch =
   | None    -> printfn "Epoch %i complete" epoch
 
 let stochasticGradientDescent startNetwork trainingData epochs miniBatchSize nu testData rnd =
+  displayEpochResults startNetwork testData -1
   let getMiniBatches () =
     trainingData
     |> shuffle rnd

@@ -16,6 +16,9 @@ let add (v1 : Vector) (v2 : Vector) : Vector =
 let addMatrices (m1 : Matrix) (m2 : Matrix) : Matrix =
   List.map2 add m1 m2
 
+let subtractMatrix (m1 : Matrix) (m2 : Matrix) : Matrix =
+  List.map2 (List.map2 (-)) m1 m2
+
 let rec transpose (m : Matrix) : Matrix =
   match m with
   | row :: rows ->
