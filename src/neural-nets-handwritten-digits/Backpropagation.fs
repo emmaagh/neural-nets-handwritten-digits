@@ -10,39 +10,40 @@ let sigmoid z =
 let sigmoid' z =
   Math.Pow(Math.E, z) / Math.Pow(Math.Pow(Math.E, z) + 1.0, 2.0)
 
-let cost' =
-  List.map2 (fun activation expected -> activation - expected)
+let cost' activations expectedValues =
+  activations - expectedValues
 
 let feedForward network input =
-  let feedActivationsThroughLayer a weights biases =
-    multiply weights a
-    |> add biases
-    |> List.map sigmoid
-  List.fold2 feedActivationsThroughLayer input network.Weights network.Biases
+  let feedActivationsThroughLayer (a:Vector<float>) (weights:Matrix<float>) (biases:Vector<float>) =
+    biases + (weights * a)
+    |> map sigmoid
+  network.Biases
+  |> List.fold2 feedActivationsThroughLayer input network.Weights
+
+let getLayerWeightedInputsAndActivations (_, (prevActivations:Vector<float>)) ((weights:Matrix<float>), biases) =
+  let layerWeightedInputs =
+    (weights * prevActivations) + biases
+  let layerActivations = layerWeightedInputs |> map sigmoid
+  layerWeightedInputs, layerActivations
+
+// (BP2)
+let backpropagateLayer (previousWeights:Matrix<float>, weightedInputs:Vector<float>) (previousDeltas:Vector<float>) =
+  previousWeights.GetTranspose() * previousDeltas
+  |> (.*) (map sigmoid' weightedInputs)
+
+// (BP4)
+let calculateWeightPartialDerivates (layerActivations:Vector<float>) (layerDeltas:Vector<float>) =
+  layerDeltas.ToArray()
+  |> Array.map (fun delta -> Array.map ((*) delta) (layerActivations.ToArray()))
+  |> arrayArrayToMatrix
 
 // Returns a network of of partial derivatives of the Cost function
 // wrt the biases and the weights
-let backpropagate network (input, expectedOutput) =
-  let getLayerWeightedInputsAndActivations (_, prevActivations) (weights, biases) =
-    let layerWeightedInputs =
-      prevActivations
-      |> multiply weights
-      |> add biases
-    let layerActivations = layerWeightedInputs |> List.map sigmoid
-    layerWeightedInputs, layerActivations
-
-  // Produce the following list:
-  // [
-  //  ([], input);
-  //  (w. input to layer 2, activations for layer 2);
-  //  ..
-  //  (w. input to layer n-1, activations for layer n-1);
-  //  (w. input to layer n, network output)
-  // ]
+let inline backpropagate network (input, expectedOutput) =
   let weightedInputsAndActivations =
     network.Biases
     |> List.zip network.Weights
-    |> List.scan getLayerWeightedInputsAndActivations ([], input)
+    |> List.scan getLayerWeightedInputsAndActivations (Vector [||], input)
   let weightedInputs, activations =
     weightedInputsAndActivations
     |> List.unzip
@@ -52,27 +53,24 @@ let backpropagate network (input, expectedOutput) =
   let deltaLast =
     weightedInputs
     |> Seq.last
-    |> List.map sigmoid'
-    |> List.map2 (*) (cost' (Seq.last activations) expectedOutput)
+    |> map sigmoid'
+    |> (.*) (cost' (Seq.last activations) expectedOutput)
 
   // (BP2)
-  let backpropagate (previousWeights, weightedInputs) previousDeltas =
-     previousDeltas
-     |> multiply (transpose previousWeights)
-     |> List.map2 (*) (List.map sigmoid' weightedInputs)
-
   let deltas =
+    let zippedWeightsAndInputs =
+      weightedInputs
+      |> Seq.zip (Seq.skip 1 network.Weights)
+      |> List.ofSeq
     List.scanBack
-      backpropagate
-      (Seq.zip (Seq.skip 1 network.Weights) weightedInputs |> List.ofSeq)
+      backpropagateLayer
+      zippedWeightsAndInputs
       deltaLast
 
   // (BP4)
-  let calculateWeightPartialDerivates layerActivations =
-    List.map (fun delta -> List.map ((*) delta) layerActivations)
   let weights =
     Seq.map2 calculateWeightPartialDerivates activations deltas
     |> List.ofSeq
 
-  { Biases = deltas; // (BP3)
+  { Biases = deltas // (BP3)
     Weights = weights }

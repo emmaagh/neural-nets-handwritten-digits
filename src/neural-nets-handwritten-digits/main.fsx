@@ -6,6 +6,7 @@
 #load "MnistReader.fs"
 
 open System
+open System.Diagnostics
 open Matrix
 open Network
 open Backpropagation
@@ -22,22 +23,27 @@ let train () =
   let trainingData =
     getTrainingSet ()
     |> Array.ofSeq
+    |> Array.map (
+        fun (input, output) ->
+          input |> Array.ofList |> Vector,
+          output |> Array.ofList |> Vector)
 
   let testData =
     getTestSet ()
     |> List.ofSeq
+    |> List.map (fun (input, output) ->
+        input |> Array.ofList |> Vector,
+        output)
     |> Some
 
   printfn "Test data loaded"
 
-  let resultNetwork = stochasticGradientDescent startNetwork trainingData 5 10 3.0 testData rnd
+  let stopwatch = Stopwatch.StartNew ()
+  printfn "START"
 
-  printfn "Biases"
-  resultNetwork.Biases
-  |> List.iter (List.length >> printfn "%A")
+  stochasticGradientDescent startNetwork trainingData 5 10 3.0 testData rnd
+  |> ignore
 
-  printfn "Weights"
-  resultNetwork.Weights
-  |> List.iter (List.length >> printfn "%A")
+  printfn "END %f" stopwatch.Elapsed.TotalSeconds
 
 train ()
