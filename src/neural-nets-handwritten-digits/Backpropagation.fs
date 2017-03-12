@@ -20,30 +20,44 @@ let feedForward network input =
   network.Biases
   |> List.fold2 feedActivationsThroughLayer input network.Weights
 
-let getLayerWeightedInputsAndActivations (_, (prevActivations:Vector<float>)) ((weights:Matrix<float>), biases) =
+let getLayerWeightedInputsAndActivations (_, (prevActivations:Matrix<float>)) ((weights:Matrix<float>), biases) =
   let layerWeightedInputs =
     (weights * prevActivations) + biases
-  let layerActivations = layerWeightedInputs |> map sigmoid
+  let layerActivations = layerWeightedInputs |> mapMatrix sigmoid
   layerWeightedInputs, layerActivations
 
 // (BP2)
-let backpropagateLayer (previousWeights:Matrix<float>, weightedInputs:Vector<float>) (previousDeltas:Vector<float>) =
+let backpropagateLayer (previousWeights:Matrix<float>, weightedInputs:Matrix<float>) (previousDeltas:Matrix<float>) =
   previousWeights.GetTranspose() * previousDeltas
-  |> (.*) (map sigmoid' weightedInputs)
+  |> (.*) (mapMatrix sigmoid' weightedInputs)
 
 // (BP4)
-let calculateWeightPartialDerivates (layerActivations:Vector<float>) (layerDeltas:Vector<float>) =
-  layerDeltas.ToArray()
-  |> Array.map (fun delta -> Array.map ((*) delta) (layerActivations.ToArray()))
-  |> arrayArrayToMatrix
+let calculateWeightPartialDerivates (layerActivations:Matrix<float>) (layerDeltas:Matrix<float>) =
+  toColumnVectors layerDeltas
+  |> List.zip (toColumnVectors layerActivations)
+  |> List.map (@*)
+
+let averageVectorOfMatrix matrix =
+  let totalVector =
+    matrix
+    |> toColumnVectors
+    |> List.sum
+  totalVector / float matrix.Cols
+
+let averageMatrixOfMatrices (matrices:Matrix<float> List) =
+  let totalMatrix = matrices |> List.sum
+  let length = matrices |> List.length |> float
+  totalMatrix / length
 
 // Returns a network of of partial derivatives of the Cost function
-// wrt the biases and the weights
-let inline backpropagate network (input, expectedOutput) =
+// wrt the biases and the weights, using a fully matrix-based approach
+let inline backpropagate network (input:Matrix<float>, expectedOutput) =
+  let biasesMatrix = matrixOfRepeatedVector (input.Cols)
   let weightedInputsAndActivations =
     network.Biases
+    |> List.map biasesMatrix
     |> List.zip network.Weights
-    |> List.scan getLayerWeightedInputsAndActivations (Vector [||], input)
+    |> List.scan getLayerWeightedInputsAndActivations (Matrix.Zero, input)
   let weightedInputs, activations =
     weightedInputsAndActivations
     |> List.unzip
@@ -53,7 +67,7 @@ let inline backpropagate network (input, expectedOutput) =
   let deltaLast =
     weightedInputs
     |> Seq.last
-    |> map sigmoid'
+    |> mapMatrix sigmoid'
     |> (.*) (cost' (Seq.last activations) expectedOutput)
 
   // (BP2)
@@ -67,10 +81,13 @@ let inline backpropagate network (input, expectedOutput) =
       zippedWeightsAndInputs
       deltaLast
 
+  let biases = deltas |> List.map averageVectorOfMatrix
+
   // (BP4)
   let weights =
     Seq.map2 calculateWeightPartialDerivates activations deltas
     |> List.ofSeq
+    |> List.map averageMatrixOfMatrices
 
-  { Biases = deltas // (BP3)
+  { Biases = biases // (BP3)
     Weights = weights }
